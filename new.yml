@@ -1,1 +1,31 @@
+pipeline {
+    agent any
 
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/yourusername/yourrepo.git'
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh 'docker build -t jenkins-app:build-${BUILD_NUMBER} .'
+            }
+        }
+
+        stage('Deploy & Verify') {
+            steps {
+                sh '''
+                docker stop jenkins-app || true
+                docker rm jenkins-app || true
+                docker run -d --name jenkins-app -p 8081:80 jenkins-app:build-${BUILD_NUMBER}
+                sleep 3
+                curl -f http://localhost:8081 || exit 1
+                '''
+            }
+        }
+    }
+}
